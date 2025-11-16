@@ -1,48 +1,66 @@
 """
-Database Schemas
+Database Schemas for AI Receptionist (Hospitality)
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
-
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+Each Pydantic model maps to a MongoDB collection where the collection name is the lowercase
+of the class name (e.g., Property -> "property").
 """
+from pydantic import BaseModel, Field, EmailStr
+from typing import Optional, List, Literal
+from datetime import date
 
-from pydantic import BaseModel, Field
-from typing import Optional
+class Property(BaseModel):
+    name: str = Field(..., description="Property name")
+    description: Optional[str] = Field(None, description="Short description of the hotel/motel")
+    address: Optional[str] = Field(None)
+    city: Optional[str] = Field(None)
+    country: Optional[str] = Field(None)
+    phone: Optional[str] = Field(None)
+    email: Optional[EmailStr] = Field(None)
+    website: Optional[str] = Field(None)
+    check_in_time: Optional[str] = Field("3:00 PM")
+    check_out_time: Optional[str] = Field("11:00 AM")
+    amenities: List[str] = Field(default_factory=lambda: ["Free Wi‑Fi", "Parking", "Breakfast available"]) 
+    currency: str = Field("USD")
+    timezone: Optional[str] = Field(None)
+    rooms_total: int = Field(20, ge=0)
+    rooms_available: int = Field(20, ge=0)
+    min_rate: Optional[float] = Field(79.0, ge=0)
+    max_rate: Optional[float] = Field(249.0, ge=0)
 
-# Example schemas (replace with your own):
+class Faq(BaseModel):
+    question: str
+    answer: str
+    tags: List[str] = Field(default_factory=list)
 
-class User(BaseModel):
-    """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
-    """
-    name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+class ConversationMessage(BaseModel):
+    role: Literal['user', 'assistant']
+    content: str
+    lang: Optional[str] = Field(None, description="Language code if detected")
 
-class Product(BaseModel):
-    """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
-    """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
+class Conversation(BaseModel):
+    visitor_id: str
+    messages: List[ConversationMessage] = Field(default_factory=list)
+    status: Literal['open','closed'] = 'open'
+    source: Literal['web','kiosk','sms','whatsapp','phone'] = 'web'
 
-# Add your own schemas here:
-# --------------------------------------------------
+class Lead(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    message: Optional[str] = None
+    conversation_id: Optional[str] = None
+    status: Literal['new','contacted','qualified','booked','closed'] = 'new'
 
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+class BookingRequest(BaseModel):
+    full_name: str
+    email: EmailStr
+    phone: Optional[str] = None
+    check_in: date
+    check_out: date
+    adults: int = 2
+    children: int = 0
+    special_requests: Optional[str] = None
+    estimated_rate: Optional[float] = None
+    currency: str = 'USD'
+    conversation_id: Optional[str] = None
+
